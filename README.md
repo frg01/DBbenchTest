@@ -1,5 +1,5 @@
 # database-benchTest
-bench test for postgresql ,support vector 
+bench test for postgresql ,support vector now 
 
 
 parquet-go 存储测试集
