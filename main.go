@@ -1,5 +1,9 @@
-package database_benchTest
+package main
+
+import "fmt"
 
 func main() {
+
+	fmt.Println("asdasdasd")
 
 }
