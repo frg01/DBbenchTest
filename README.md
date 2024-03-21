@@ -15,5 +15,3 @@ go get github.com/xitongsys/parquet-go
 连接postgresql的工具
 go get github.com/jackc/pgx/v5
 https://github.com/lib/pq.git
-
-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
