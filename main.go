@@ -1,50 +1,96 @@
 package main
 
 import (
-	"context"
+	"database-benchTest/src"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"os"
+	"sort"
+	"sync"
 	"time"
 )
 
 func main() {
 
-	//获取运行参数，检查参数
-	//args := os.Args[1:]
-	//fmt.Printf("参数：%v,%v\n", args[0], args[1])
-	//for i := 0; i < len(args); i++ {
-	//	values := strings.Split(args[i], "=")
-	//	fmt.Printf("\tkey:%s", values[0])
-	//	fmt.Printf("\tvalue:%s", values[1])
-	//}
+	concurrency := 100           // 并发数，即同时执行的goroutine数量
+	duration := 10 * time.Second // 运行时长，即测试运行的总时长
 
-	config, err := pgxpool.ParseConfig("postgres://bigmath:bigmath@192.168.50.60:5433/bigmath?sslmode=disable&pool_max_conns=20")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "config set wrong ,check input parameters!\\n")
-		os.Exit(1)
-	}
+	_ = duration // 忽略duration，暂未使用
 
-	////设置取消尝试时间
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	// 获取连接池、上下文和取消函数
+	pool, ctx, cancel := src.SetPool()
+
+	// 在函数结束时调用取消函数和关闭连接池
 	defer cancel()
-
-	//连接数据库
-	pool, err := pgxpool.New(ctx, config.ConnString())
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to connect to database：%v\n", err)
-		os.Exit(1)
-	}
-
-	stat := pool.Stat()
-	fmt.Printf("连接池状态：%v", stat)
-
-	//执行建表语句
-	tag, err := pool.Exec(ctx, "create table if not exists go_test6 (id bigserial,embedding vector(3));")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "exec sql failed:%v\n", err)
-	}
-	_ = tag
-
 	defer pool.Close()
+
+	// 定义一个等待组
+	var wg sync.WaitGroup
+
+	// 记录开始时间
+	start := time.Now()
+
+	// 记录已经执行的任务数量
+	var counter int
+
+	// 定义一个通道用于接收任务执行的时间
+	results := make(chan time.Duration, concurrency)
+
+	// 循环启动并发数量的goroutine执行任务
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1) // 增加等待组计数
+		go func() {
+			defer wg.Done()                                              // 减少等待组计数
+			queryStart := time.Now()                                     // 记录任务开始时间
+			_, err := pool.Exec(ctx, "SELECT * FROM openai50w LIMIT 1;") // 执行SQL查询
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "exec sql failed: %v\n", err) // 打印错误信息
+				return
+			}
+			queryDuration := time.Since(queryStart) // 计算任务执行时间
+			results <- queryDuration                // 将任务执行时间发送到通道中
+			counter += 1
+		}()
+	}
+
+	// 启动一个goroutine等待所有任务执行完毕
+	go func() {
+		wg.Wait()      // 等待所有任务执行完毕
+		close(results) // 关闭结果通道
+	}()
+
+	// 主goroutine 统计所有任务的执行时间
+	var queryDurations []time.Duration
+	for result := range results {
+		queryDurations = append(queryDurations, result)
+	}
+
+	// 计算 QPS 和 P99
+	totalQueries := len(queryDurations)                    // 总执行任务数量
+	totalDuration := time.Since(start)                     // 总执行时间
+	qps := float64(totalQueries) / totalDuration.Seconds() // 每秒执行的任务数量
+	fmt.Printf("QPS: %.2f\n", qps)                         // 打印QPS
+	p99 := calculateP99(queryDurations)                    // 计算P99延迟
+	fmt.Printf("P99: %v\n", p99)                           // 打印P99延迟
+
+	fmt.Printf("counter: %v\n", counter)
+
+}
+
+func calculateP99(durations []time.Duration) time.Duration {
+	if len(durations) == 0 {
+		return 0
+	}
+
+	var totalDuration time.Duration
+	for _, duration := range durations {
+		totalDuration += duration
+	}
+	averageDuration := totalDuration / time.Duration(len(durations))
+	_ = averageDuration
+
+	var p99Index = int(float64(len(durations)) * 0.99)
+	var sortedDurations = append([]time.Duration(nil), durations...)
+	sort.Slice(sortedDurations, func(i, j int) bool { return sortedDurations[i] < sortedDurations[j] })
+
+	return sortedDurations[p99Index]
 }
