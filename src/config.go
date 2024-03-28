@@ -20,7 +20,7 @@ func GetUrl() string {
 
 	//defined command line params
 	var (
-		ip       = "192.168.50.60"
+		ip       = "192.168.50.93"
 		port     = 5433
 		username = "bigmath"
 		pwd      = "bigmath"
@@ -43,7 +43,7 @@ func GetUrl() string {
 	fmt.Printf("用户名: %s\n", username)
 
 	//databaseUrl := "postgres://" + username + ":" + pwd + "@" + ip + ":" + string(port) + "/" + database + "?sslmode=disable&pool_max_conns=" + string(maxConn)
-	databaseUrl := "postgres://bigmath:bigmath@192.168.50.60:5433/bigmath?sslmode=disable&pool_max_conns=100"
+	databaseUrl := "postgres://bigmath:bigmath@192.168.50.93:5433/bigmath?sslmode=disable&pool_max_conns=100"
 	fmt.Printf("url=", databaseUrl)
 
 	return databaseUrl
