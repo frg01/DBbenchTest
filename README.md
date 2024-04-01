@@ -15,3 +15,24 @@ go get github.com/xitongsys/parquet-go
 连接postgresql的工具
 go get github.com/jackc/pgx/v5
 https://github.com/lib/pq.git
+
+
+project has problem to fix, 
+pgvector.go import database-benchTest/src and main import database-benchTest/src
+PS D:\project\goProjecet\databaseBench\database-benchTest> go run .\main.go
+package command-line-arguments
+imports database-benchTest/src
+imports database-benchTest/src/database/pgvector
+imports database-benchTest/src: import cycle not allowed
+
+
+关于qps的计算
+
+请求成功和请求失败的记录
+public double requestsPerSecondThroughput() {
+return (double) measuredRequests / (double) nanoseconds * 1e9;
+}
+
+public double requestsPerSecondGoodput() {
+return (double) success.getSampleCount() / (double) nanoseconds * 1e9;
+}

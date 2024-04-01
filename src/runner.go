@@ -1,53 +1,48 @@
 package src
 
 import (
-	"context"
-	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"os"
-	"time"
+	"database-benchTest/src/database/pgvector"
+	"database-benchTest/src/utils"
 )
 
 var DatabaseURL string
 
 type Runner struct {
+	DatabaseURL string
 }
 
-func init() {
-
-	DatabaseURL = getConfig()
+func NewRunner() *Runner {
+	r := &Runner{}
+	r.init()
+	return r
 }
 
-func getConfig() string {
+func (r *Runner) init() {
+
+	r.DatabaseURL = r.getConfig()
+}
+
+func (r *Runner) getConfig() string {
 	config := Config{GetUrl()}
 	return config.databaseUrl
 }
 
-func SetPool() (*pgxpool.Pool, context.Context, context.CancelFunc) {
+func (r *Runner) Run() {
 
-	fmt.Println("DatabaseURL:", DatabaseURL)
-	config, err := pgxpool.ParseConfig(DatabaseURL)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "config set wrong ,check input parameters!\\n")
-		os.Exit(1)
-	}
+	//1. load entire datasets
+	vectors := utils.ReadEmbeddingParquet()
 
-	////设置取消尝试时间
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	//connection database
+	pg := pgvector.NewPgvector(r.DatabaseURL)
+	defer pg.Down()
 
-	//连接数据库
-	pool, err := pgxpool.New(ctx, config.ConnString())
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to connect to database：%v\n", err)
-		os.Exit(1)
-	}
+	//2.insert into database
+	pg.InsertData(vectors)
 
-	stat := pool.Stat()
-	fmt.Printf("连接池状态：%v", stat)
+	//3. build index
+	pg.CreateIndex()
 
-	return pool, ctx, cancel
-}
-
-func Run() {
+	//4. multi query embedding
+	//pg.SingleSearch("[embedding]")
 
 }
