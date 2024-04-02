@@ -3,6 +3,7 @@ package pgvector
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"os"
@@ -46,12 +47,14 @@ func (p *Pgvector) CreateIndex() {
 	}
 }
 
-func (p *Pgvector) SingleSearch(embedding string) {
+func (p *Pgvector) SingleSearch(embedding string) (pgx.Rows, error) {
 	pg := p.pool
-	_, err := pg.Query(nil, "select id,embedding from items order by embedding <-> $1", embedding)
+	res, err := pg.Query(nil, "select id,embedding from items order by embedding <-> $1", embedding)
 	if err != nil {
 		log.Print(err)
 	}
+
+	return res, err
 }
 
 func (p *Pgvector) Down() {
