@@ -4,7 +4,6 @@ import (
 	"database-benchTest/src/database/pgvector"
 	"database-benchTest/src/utils"
 	"fmt"
-
 	"sync"
 	"time"
 )
@@ -63,10 +62,11 @@ func (r *Runner) mulConcurrency(pg *pgvector.Pgvector, concurrency int, vectors 
 	// 定义一个通道用于接收任务执行的时间
 	results := make(chan time.Duration, concurrency)
 
-	// 记录开始时间
+	// 记录开始时间1
 	start := time.Now()
 
 	for i := 0; i < concurrency; i++ {
+		index := i
 		for {
 			select {
 			case <-timer.C:
@@ -76,10 +76,10 @@ func (r *Runner) mulConcurrency(pg *pgvector.Pgvector, concurrency int, vectors 
 			default:
 				wg.Add(1) // 增加等待组计数
 				go func() {
-					defer wg.Done()                         // 减少等待组计数
-					queryStart := time.Now()                // 记录任务开始时间
-					res, err := pg.SingleSearch(vectors[i]) // 执行SQL查询
-					queryDuration := time.Since(queryStart) // 计算任务执行时间
+					defer wg.Done()                             // 减少等待组计数
+					queryStart := time.Now()                    // 记录任务开始时间
+					res, err := pg.SingleSearch(vectors[index]) // 执行SQL查询
+					queryDuration := time.Since(queryStart)     // 计算任务执行时间
 					_ = res
 					if err != nil {
 						fmt.Println(err)
