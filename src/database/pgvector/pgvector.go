@@ -3,10 +3,11 @@ package pgvector
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"os"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Pgvector struct {
@@ -15,17 +16,15 @@ type Pgvector struct {
 	cancel context.CancelFunc
 }
 
-func NewPgvector(databaseUrl string) *Pgvector {
-	pgVec := &Pgvector{}
-	pgVec.init(databaseUrl)
-	return pgVec
-}
-
 func (p *Pgvector) init(databaseUrl string) {
 	p.pool = p.setPool(databaseUrl)
 }
 
-func (p *Pgvector) InsertData(vectors []string) {
+func (p *Pgvector) down() {
+	p.pool.Close()
+}
+
+func (p *Pgvector) insertData(vectors []string) {
 
 	for _, value := range vectors {
 		_, err := p.pool.Exec(context.Background(), "insert into items (embedding) values ($1);", value)
@@ -36,9 +35,10 @@ func (p *Pgvector) InsertData(vectors []string) {
 }
 
 func insertDataMutil() {
+
 }
 
-func (p *Pgvector) CreateIndex() {
+func (p *Pgvector) createIndex() {
 
 	_, err := p.pool.Exec(context.Background(), "CREATE INDEX ON items USING spann (embedding vector_cosine_ops) WITH (machine=3,threads=16,assign=1);")
 	if err != nil {
@@ -46,18 +46,14 @@ func (p *Pgvector) CreateIndex() {
 	}
 }
 
-func (p *Pgvector) SingleSearch(embedding string) (pgx.Rows, error) {
+func (p *Pgvector) singleSearch(embedding string) (pgx.Rows, error) {
 
 	res, err := p.pool.Query(nil, "select id,embedding from items order by embedding <-> $1", embedding)
 	if err != nil {
-		log.Print(err)
+		log.Print("select", err)
 	}
 
 	return res, err
-}
-
-func (p *Pgvector) Down() {
-	p.pool.Close()
 }
 
 func (p *Pgvector) setPool(databaseURL string) *pgxpool.Pool { //, context.Context, context.CancelFunc

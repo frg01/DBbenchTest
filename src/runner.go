@@ -1,8 +1,8 @@
 package src
 
 import (
-	"database-benchTest/src/database/pgvector"
-	"database-benchTest/src/utils"
+	"DBbenchTest/src/database/pgvector"
+	"DBbenchTest/src/utils"
 	"fmt"
 	"sync"
 	"time"
@@ -28,20 +28,21 @@ func (r *Runner) getConfig() string {
 	return config.databaseUrl
 }
 
-func (r *Runner) Run() {
+func (r *Runner) run() {
 
 	//1. load entire datasets
 	vectors := utils.ReadEmbeddingParquet()
 
 	//connection database
-	pg := pgvector.NewPgvector(r.DatabaseURL)
-	defer pg.Down()
+	pg := new(pgvector.Pgvector)
+	pg.init(r.DatabaseURL)
+	defer pg.down()
 
 	////2.insert into database
-	//pg.InsertData(vectors)
+	//pg.insertData(vectors)
 	//
 	////3. build index
-	//pg.CreateIndex()
+	//pg.createIndex()
 
 	//4. multi query embedding
 	r.mulConcurrency(pg, 1, vectors)
@@ -78,7 +79,7 @@ func (r *Runner) mulConcurrency(pg *pgvector.Pgvector, concurrency int, vectors 
 				go func() {
 					defer wg.Done()                             // 减少等待组计数
 					queryStart := time.Now()                    // 记录任务开始时间
-					res, err := pg.SingleSearch(vectors[index]) // 执行SQL查询
+					res, err := pg.singleSearch(vectors[index]) // 执行SQL查询
 					queryDuration := time.Since(queryStart)     // 计算任务执行时间
 					_ = res
 					if err != nil {

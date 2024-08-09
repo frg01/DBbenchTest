@@ -1,4 +1,4 @@
-module database-benchTest
+module DBbenchTest
 
 go 1.22
 

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"database-benchTest/src"
+	"DBbenchTest/src"
 	"sort"
+	"testing"
 	"time"
 )
 
@@ -11,10 +12,14 @@ type Record struct {
 	NeighborsID float32 `parquet:"name=neighbors_id, type=FLOAT"`
 }
 
+func Testbench(T *testing.T) {
+	main()
+}
+
 func main() {
 
-	runner := src.NewRunner()
-	runner.Run()
+	runner := new(src.Runner)
+	runner.run()
 
 	//concurrency := 1000          // 并发数，即同时执行的goroutine数量
 	//duration := 10 * time.Second // 运行时长，即测试运行的总时长
